@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Registration Page</title>
+  <link rel="stylesheet" href="client.css">
+  <style>
+    .message { color: red; }
+    .success { color: green; }
+    input { display: block; margin-bottom: 10px; }
+    
+    .autocomplete-container {
+      position: relative;
+    }
+
+    #collegeList {
+      border: 1px solid #ccc;
+      max-height: 100px;
+      overflow-y: auto;
+      position: absolute;
+      background: white;
+      width: 100%; /* Matches input width */
+      z-index: 1000;
+      top: 100%; /* Right below the input */
+      left: 0;
+    }
+
+    #collegeList div {
+      padding: 5px;
+      cursor: pointer;
+    }
+
+    #collegeList div:hover {
+      background-color: #eee;
+    }
+  </style>
+</head>
+<body>
+  <h2>Register</h2>
+  <form id="regForm" onsubmit="return false;">
+    <label>Name:
+      <input type="text" id="name" required>
+    </label>
+
+    <label>College:
+      <div class="autocomplete-container">
+        <input type="text" id="college" onfocus="suggestCollege()" oninput="suggestCollege()" autocomplete="off" required>
+        <div id="collegeList"></div>
+      </div>
+    </label>
+
+    <label>Username:
+      <input type="text" id="username" onblur="checkUsername()" required>
+      <span class="message" id="userMsg"></span>
+    </label>
+
+    <label>Password:
+      <input type="password" id="password" required>
+    </label>
+
+    <label>Confirm Password:
+      <input type="password" id="confirmPassword" onkeyup="checkPassword()" required>
+      <span class="message" id="passMsg"></span>
+    </label>
+
+    <button onclick="submitForm()">Register</button>
+    <p class="success" id="successMsg"></p>
+  </form>
+
+  <script>
+    const colleges = [
+      "Harvard University",
+      "Stanford University",
+      "Massachusetts Institute of Technology",
+      "California Institute of Technology",
+      "University of Oxford",
+      "University of Cambridge",
+      "IIT Bombay",
+      "IIT Delhi",
+      "NIT Trichy",
+      "BITS Pilani"
+    ];
+
+    function suggestCollege() {
+      const inputElem = document.getElementById('college');
+      const input = inputElem.value.toLowerCase();
+      const list = document.getElementById('collegeList');
+      list.innerHTML = "";
+
+      const matches = colleges.filter(c => c.toLowerCase().startsWith(input) || input === "");
+
+      matches.forEach(college => {
+        const div = document.createElement("div");
+        div.textContent = college;
+        div.onclick = () => {
+          inputElem.value = college;
+          list.innerHTML = "";
+        };
+        list.appendChild(div);
+      });
+    }
+
+    // Hide suggestions when clicking outside
+    document.addEventListener("click", function (e) {
+      const list = document.getElementById('collegeList');
+      const input = document.getElementById('college');
+      if (!input.contains(e.target) && !list.contains(e.target)) {
+        list.innerHTML = "";
+      }
+    });
+
+    function checkUsername() {
+      const username = document.getElementById('username').value;
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/check-username", true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          const res = JSON.parse(xhr.responseText);
+          document.getElementById('userMsg').textContent = res.exists ? "Username already exists!" : "";
+        }
+      };
+      xhr.send(JSON.stringify({ username }));
+    }
+
+    function checkPassword() {
+      const pass = document.getElementById('password').value;
+      const confirm = document.getElementById('confirmPassword').value;
+      const msg = document.getElementById('passMsg');
+      msg.textContent = (pass && confirm && pass !== confirm) ? "Passwords do not match" : "";
+    }
+
+    function submitForm() {
+      const name = document.getElementById('name').value;
+      const college = document.getElementById('college').value;
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const userMsg = document.getElementById('userMsg').textContent;
+      const passMsg = document.getElementById('passMsg').textContent;
+
+      if (userMsg || passMsg || !name || !college || !username || !password || !confirmPassword) return;
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/register", true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          const res = JSON.parse(xhr.responseText);
+          document.getElementById('successMsg').textContent = res.success ? "Successfully Registered" : "";
+        }
+      };
+      xhr.send(JSON.stringify({ name, college, username, password }));
+    }
+  </script>
+</body>
+</html>
